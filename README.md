@@ -14,9 +14,9 @@ The course covers fundamental concepts such as task scheduling, interrupts, conc
 Professor Matthew Campisi
 
 **Teaching Assistants**  
-Jotheesh Reddy Kummathi   (jrk8067@nyu.edu)
-Divij kapur               (dk4999@nyu.edu)
-Rahul Reghunath           (rr4660@nyu.edu)
+- Jotheesh Reddy Kummathi   (jrk8067@nyu.edu)
+- Divij kapur               (dk4999@nyu.edu)
+- Rahul Reghunath           (rr4660@nyu.edu)
 
 ---
 
