@@ -10,6 +10,14 @@ It is primarily used to host **recitation material**, example code, and supporti
 ECE-GY 6483 focuses on the design and implementation of real-time embedded systems with strict timing and resource constraints.  
 The course covers fundamental concepts such as task scheduling, interrupts, concurrency, real-time operating systems, and timing analysis, along with practical embedded software development.
 
+**Instructor**  
+Professor Matthew Campisi
+
+**Teaching Assistants**  
+Jotheesh Reddy Kummathi   (jrk8067@nyu.edu)
+Divij kapur               (dk4999@nyu.edu)
+Rahul Reghunath           (rr4660@nyu.edu)
+
 ---
 
 # Repository Usage
