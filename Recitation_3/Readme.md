@@ -18,7 +18,7 @@ ARM Assembly is a **low-level programming language** that maps closely (often 1-
 
 ### General Syntax
 
-```cpp
+```asm
 Label: Opcode Destination, Operand1, Operand2   // Comment
 ```
 
@@ -32,7 +32,7 @@ Label: Opcode Destination, Operand1, Operand2   // Comment
 
 ### Example
 
-```cpp
+```asm
 add r0, r0, r1   // r0 = r0 + r1
 ```
 
@@ -64,13 +64,13 @@ Example restriction:
 
 **Invalid:**
 
-```cpp
+```asm
 add [memory_address], #1
 ```
 
 **Correct approach:**
 
-```cpp
+```asm
 ldr r0, [address]
 add r0, r0, #1
 str r0, [address]
@@ -127,7 +127,7 @@ Simple function that:
 
 ### Implementation
 
-```cpp
+```asm
 .global add_asm
 
 // Function: add_asm
@@ -153,12 +153,13 @@ Iterates through an array of bytes and accumulates their sum.
 
 ### Implementation
 
-```cpp
+```asm
 // Function: summation1
 // r0: pointer to array
 // r1: number of elements (n)
 
 summation1:
+    push {r4, lr}
     mov r4, #0          // accumulator = 0
 
 add_loop1:
@@ -168,6 +169,7 @@ add_loop1:
     bne add_loop1       // loop if not zero
 
     mov r0, r4          // return result
+    pop {r4, lr}
     bx lr
 ```
 
@@ -181,21 +183,21 @@ Uses **conditional execution (`IT` blocks)** to reduce branching and improve eff
 
 ### Implementation
 
-```cpp
+```asm
 summation2:
+    push {r4, lr}
     mov r4, #0
-    add r1, r1, #1
-
-add_loop2:
+    add r1, r1, #1          // Adjust offset for loop logic
+sum_loop2:
     subs r1, r1, #1
     ldrb r2, [r0], #1
-
-    IT NE
-    addne r4, r4, r2
-
-    bne add_loop2
-
+    
+    IT NE                   // If-Then block (execute next if Not Equal)
+    addne r4, r4, r2        // Conditional Add
+    
+    bne sum_loop2
     mov r0, r4
+    pop {r4, lr}
     bx lr
 ```
 
@@ -224,25 +226,25 @@ Demonstrates:
 
 ### Implementation
 
-```cpp
+```asm
 // Function: factorial
 // r0: integer n
 
 factorial:
-    cmp r0, #1
-    ble base_case
+    cmp r0, #1              // Check base case
+    ble base_case           // If n <= 1, go to base_case
 
-    push {r1, lr}
-    mov r1, r0
-    sub r0, r0, #1
-    bl factorial
-
-    mul r0, r0, r1
-    pop {r1, lr}
+    push {r1, lr}           // Save state (Link Register is crucial!)
+    mov r1, r0              // Copy n to r1
+    sub r0, r0, #1          // n = n - 1
+    bl factorial            // Recursive Call
+    
+    mul r0, r0, r1          // r0 = factorial(n-1) * n
+    pop {r1, lr}            // Restore state
     bx lr
 
 base_case:
-    mov r0, #1
+    mov r0, #1              // Return 1
     bx lr
 ```
 

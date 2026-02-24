@@ -1,11 +1,11 @@
-.syntax unified         // Essential for ARM Cortex-M
-    .global add_asm         
-    .global summation1
-    .global summation2
-    .global summation3
-    .global factorial
-
-    .text                   
+.syntax unified
+.thumb
+.text
+.global add_asm         
+.global summation1
+.global summation2
+.global summation3
+.global factorial
 
 // -------------------------------------------------------------------------
 // Function: add_asm
@@ -22,6 +22,7 @@ add_asm:
 // Output: r0 = sum
 // -------------------------------------------------------------------------
 summation1:
+    push {r4, lr}
     mov r4, #0              // Initialize accumulator
 sum_loop1:
     ldrb r2, [r0], #1       // Load byte, increment pointer
@@ -30,6 +31,7 @@ sum_loop1:
     bne sum_loop1           // Branch if not zero
     
     mov r0, r4              // Move result to return register
+    pop {r4, lr}
     bx lr
 
 // -------------------------------------------------------------------------
@@ -38,6 +40,7 @@ sum_loop1:
 // Output: r0 = sum
 // -------------------------------------------------------------------------
 summation2:
+    push {r4, lr}
     mov r4, #0
     add r1, r1, #1          // Adjust offset for loop logic
 sum_loop2:
@@ -49,6 +52,7 @@ sum_loop2:
     
     bne sum_loop2
     mov r0, r4
+    pop {r4, lr}
     bx lr
 
 // -------------------------------------------------------------------------
@@ -57,6 +61,7 @@ sum_loop2:
 // Output: r0 = sum
 // -------------------------------------------------------------------------
 summation3:
+    push {r4, lr}
     mov r4, #0
     add r1, r1, #1          // Adjust offset
 sum_loop3:
@@ -68,6 +73,7 @@ sum_loop3:
     
     bne sum_loop3
     mov r0, r4
+    pop {r4, lr}
     bx lr
 
 // -------------------------------------------------------------------------
