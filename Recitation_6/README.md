@@ -1,7 +1,6 @@
 # Recitation 5 Accelerometer & Gyroscope
 
 ## Agenda
-
 1. Introduction to LSM6DSL sensor
 2. How to read data from the LSM6DSL sensor using polling
 3. Interrupts — software and hardware
@@ -103,6 +102,31 @@ printf("Gyroscope configured: 104 Hz, ±1000 dps range\r\n");
 // Use appropriate sensitivity for ±1000 dps range
 const float GYRO_SENSITIVITY = 35.0f;  // mdps/LSB
 ```
+
+### How I2C Works on This Board
+
+The STM32 board communicates with sensors using I2C — a protocol that lets multiple devices share the same two wires.
+
+#### I2C Basics
+
+1. **Shared bus** — All sensors connect to the same two pins (SDA = PB11, SCL = PB10).
+2. **Unique addresses** — Each sensor has its own address, like houses on a street:
+   - Accelerometer/gyroscope: 0x6A (0xD4/0xD5 for write/read)
+   - Humidity/temperature sensor: 0x5F (0xBE/0xBF)
+   - Pressure sensor: 0x5D (0xBA/0xBB)
+   - Magnetometer: 0x1E (0x3C/0x3D)
+   - Distance sensor: 0x29 (0x52/0x53)
+3. **Address format** — The 7-bit sensor address is shifted left by 1 bit (`0x6A << 1 = 0xD4`) to make room for the read/write flag in the last bit. Mbed handles this automatically once you pass the shifted address.
+4. **I2C transaction sequence** — Every register read follows this sequence:
+   - Master sends START + device address + write bit
+   - Master sends the register address it wants to read
+   - Master sends repeated START + device address + read bit
+   - Sensor sends back the data byte
+   - Master sends STOP
+5. **Selecting a sensor** — The microcontroller sends the target address first; only that sensor responds.
+6. **Selecting a register** — After the sensor responds, the microcontroller specifies which register to read or write.
+
+Please refer to the LSM6DSL datasheet on Brightspace for more detail.
 
 ### ODR (Output Data Rate)
 
@@ -245,6 +269,21 @@ int main() {
     }
 }
 ```
+
+## Teleplot
+
+Teleplot is a VS Code extension that plots live serial data as graphs. To send a value, print it over serial in this format:
+```
+>variable_name:value
+```
+
+For example:
+```cpp
+printf(">acc_x:%.3f\n", acc_x_g);
+printf(">gyro_z:%.2f\n", gyro_z_dps);
+```
+
+Each variable name becomes its own live graph in the Teleplot window. Make sure each print ends with `\n` and has no spaces around the colon.
 
 ## Interrupts
 
@@ -560,6 +599,16 @@ int main() {
     }
 }
 ```
+## Polling vs Interrupts vs Event-Driven
+
+**Polling** — the MCU wakes up every 200ms and reads the sensor whether data is ready or not. Simple to write but wasteful — you miss ~95% of the sensor's samples since it produces data every 9.6ms but you only check every 200ms.
+
+**Interrupt (single thread)** — the sensor tells the MCU exactly when data is ready via the INT1 pin. The MCU does nothing until that signal fires, then reads and prints immediately. Much more efficient and you never miss a sample. The downside is that reading I2C and printing both happen in the same loop, so if printf is slow it can delay the next read.
+
+**Interrupt + EventQueue + Threads** — same hardware interrupt as above, but reading and printing are split into two separate threads. The acquisition thread reads the sensor and posts the data into a queue. The print thread picks it up and prints whenever it has time. Neither one blocks the other.
+
+
+Use polling for simple demos. Use interrupts when you need reliable data capture. Use threads when reading and printing need to run independently without blocking each other.
 
 ### Why Sensor Values Keep Changing Even When the Board is at Rest
 
@@ -576,45 +625,6 @@ To make readings more stable you could try:
 - Calibrating the sensor while it is stationary
 - Ignoring changes smaller than a threshold (e.g. less than 0.02g)
 
-### How I2C Works on This Board
-
-The STM32 board communicates with sensors using I2C — a protocol that lets multiple devices share the same two wires.
-
-#### I2C Basics
-
-1. **Shared bus** — All sensors connect to the same two pins (SDA = PB11, SCL = PB10).
-2. **Unique addresses** — Each sensor has its own address, like houses on a street:
-   - Accelerometer/gyroscope: 0x6A (0xD4/0xD5 for write/read)
-   - Humidity/temperature sensor: 0x5F (0xBE/0xBF)
-   - Pressure sensor: 0x5D (0xBA/0xBB)
-   - Magnetometer: 0x1E (0x3C/0x3D)
-   - Distance sensor: 0x29 (0x52/0x53)
-3. **Address format** — The 7-bit sensor address is shifted left by 1 bit (`0x6A << 1 = 0xD4`) to make room for the read/write flag in the last bit. Mbed handles this automatically once you pass the shifted address.
-4. **I2C transaction sequence** — Every register read follows this sequence:
-   - Master sends START + device address + write bit
-   - Master sends the register address it wants to read
-   - Master sends repeated START + device address + read bit
-   - Sensor sends back the data byte
-   - Master sends STOP
-5. **Selecting a sensor** — The microcontroller sends the target address first; only that sensor responds.
-6. **Selecting a register** — After the sensor responds, the microcontroller specifies which register to read or write.
-
-Please refer to the LSM6DSL datasheet on Brightspace for more detail.
-
-## Teleplot
-
-Teleplot is a VS Code extension that plots live serial data as graphs. To send a value, print it over serial in this format:
-```
->variable_name:value
-```
-
-For example:
-```cpp
-printf(">acc_x:%.3f\n", acc_x_g);
-printf(">gyro_z:%.2f\n", gyro_z_dps);
-```
-
-Each variable name becomes its own live graph in the Teleplot window. Make sure each print ends with `\n` and has no spaces around the colon.
 
 ## Reference Pages
 
@@ -636,4 +646,4 @@ Each variable name becomes its own live graph in the Teleplot window. Make sure 
 
 ## Note
 
-There are other sensors on the board (temperature, humidity, pressure, magnetometer, distance) for you to explore as well.
+There are other sensors on the board (temperature, humidity, pressure) for you to explore as well.
