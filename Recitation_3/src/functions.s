@@ -97,3 +97,4 @@ factorial:
 base_case:
     mov r0, #1              // Return 1
     bx lr
+

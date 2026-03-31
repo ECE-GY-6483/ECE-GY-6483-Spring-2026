@@ -1,9 +1,9 @@
-# Recitation 5 Accelerometer & Gyroscope
+# Recitation 6 Accelerometer & Gyroscope
 
 ## Agenda
 1. Introduction to LSM6DSL sensor
 2. How to read data from the LSM6DSL sensor using polling
-3. Interrupts — software and hardware
+3. Interrupts   software and hardware
 4. How to use Teleplot
 
 ## LSM6DSL Sensor
@@ -105,42 +105,42 @@ const float GYRO_SENSITIVITY = 35.0f;  // mdps/LSB
 
 ### How I2C Works on This Board
 
-The STM32 board communicates with sensors using I2C — a protocol that lets multiple devices share the same two wires.
+The STM32 board communicates with sensors using I2C   a protocol that lets multiple devices share the same two wires.
 
 #### I2C Basics
 
-1. **Shared bus** — All sensors connect to the same two pins (SDA = PB11, SCL = PB10).
-2. **Unique addresses** — Each sensor has its own address, like houses on a street:
+1. **Shared bus**   All sensors connect to the same two pins (SDA = PB11, SCL = PB10).
+2. **Unique addresses**   Each sensor has its own address, like houses on a street:
    - Accelerometer/gyroscope: 0x6A (0xD4/0xD5 for write/read)
    - Humidity/temperature sensor: 0x5F (0xBE/0xBF)
    - Pressure sensor: 0x5D (0xBA/0xBB)
    - Magnetometer: 0x1E (0x3C/0x3D)
    - Distance sensor: 0x29 (0x52/0x53)
-3. **Address format** — The 7-bit sensor address is shifted left by 1 bit (`0x6A << 1 = 0xD4`) to make room for the read/write flag in the last bit. Mbed handles this automatically once you pass the shifted address.
-4. **I2C transaction sequence** — Every register read follows this sequence:
+3. **Address format**   The 7-bit sensor address is shifted left by 1 bit (`0x6A << 1 = 0xD4`) to make room for the read/write flag in the last bit. Mbed handles this automatically once you pass the shifted address.
+4. **I2C transaction sequence**   Every register read follows this sequence:
    - Master sends START + device address + write bit
    - Master sends the register address it wants to read
    - Master sends repeated START + device address + read bit
    - Sensor sends back the data byte
    - Master sends STOP
-5. **Selecting a sensor** — The microcontroller sends the target address first; only that sensor responds.
-6. **Selecting a register** — After the sensor responds, the microcontroller specifies which register to read or write.
+5. **Selecting a sensor**   The microcontroller sends the target address first; only that sensor responds.
+6. **Selecting a register**   After the sensor responds, the microcontroller specifies which register to read or write.
 
 Please refer to the LSM6DSL datasheet on Brightspace for more detail.
 
 ### ODR (Output Data Rate)
 
-ODR stands for Output Data Rate — it defines how many samples per second the sensor produces. In this recitation we use 104Hz, meaning the sensor generates a new accelerometer and gyroscope reading approximately every 9.6ms. The ODR is set in the upper 4 bits of CTRL1_XL and CTRL2_G registers alongside the range configuration.
+ODR stands for Output Data Rate   it defines how many samples per second the sensor produces. In this recitation we use 104Hz, meaning the sensor generates a new accelerometer and gyroscope reading approximately every 9.6ms. The ODR is set in the upper 4 bits of CTRL1_XL and CTRL2_G registers alongside the range configuration.
 
 ### Raw Values and Sensitivity
 
-The sensor outputs a 16-bit signed integer (range: -32768 to +32767) for each axis. This raw number has no physical meaning on its own — it just represents a voltage level from the sensor's internal analog circuit. To convert it to a real physical unit (g for acceleration, dps for rotation) we multiply by the sensitivity factor, which depends on the measurement range configured:
+The sensor outputs a 16-bit signed integer (range: -32768 to +32767) for each axis. This raw number has no physical meaning on its own   it just represents a voltage level from the sensor's internal analog circuit. To convert it to a real physical unit (g for acceleration, dps for rotation) we multiply by the sensitivity factor, which depends on the measurement range configured:
 ```
 actual_value [g]   = raw_value × sensitivity [mg/LSB] / 1000
 actual_value [dps] = raw_value × sensitivity [mdps/LSB] / 1000
 ```
 
-The larger the range (e.g. ±16g vs ±2g), the less precise each step is — each LSB represents a bigger physical change. This is the trade-off between range and resolution.
+The larger the range (e.g. ±16g vs ±2g), the less precise each step is   each LSB represents a bigger physical change. This is the trade-off between range and resolution.
 
 ### Little-Endian Byte Order
 
@@ -157,7 +157,7 @@ For example if low byte = 0x34 and high byte = 0x12, the result is 0x1234.
 
 ### WHO_AM_I Register
 
-WHO_AM_I (register 0x0F) is a read-only register built into the LSM6DSL that always returns the fixed value 0x6A. It exists purely for identification — we read it at startup to confirm that the sensor is connected, powered, and responding correctly over I2C before we try to configure or read it. If we get back anything other than 0x6A, something is wrong with the wiring or the address.
+WHO_AM_I (register 0x0F) is a read-only register built into the LSM6DSL that always returns the fixed value 0x6A. It exists purely for identification   we read it at startup to confirm that the sensor is connected, powered, and responding correctly over I2C before we try to configure or read it. If we get back anything other than 0x6A, something is wrong with the wiring or the address.
 ```c
 uint8_t id = read_register(WHO_AM_I);
 printf("WHO_AM_I = 0x%02X (Expected: 0x6A)\r\n", id);
@@ -170,15 +170,15 @@ if (id != 0x6A) {
 
 ## Polling
 
-Polling means the microcontroller checks the sensor on a fixed timer, regardless of whether new data is actually ready. In this example the main loop wakes up every 200ms, reads all axes, and prints the values. The sensor produces data at 104Hz (~every 9.6ms) but we only read every 200ms — most samples are simply ignored. It is simple to implement but inefficient compared to interrupt-driven approaches.
+Polling means the microcontroller checks the sensor on a fixed timer, regardless of whether new data is actually ready. In this example the main loop wakes up every 200ms, reads all axes, and prints the values. The sensor produces data at 104Hz (~every 9.6ms) but we only read every 200ms   most samples are simply ignored. It is simple to implement but inefficient compared to interrupt-driven approaches.
 
-### Example — Polling
+### Example   Polling
 ```cpp
 #include "mbed.h"
 
 I2C i2c(PB_11, PB_10); // I2C2: SDA = PB11, SCL = PB10
 
-// Ignore this — sometimes Mac needs this to properly use printf
+// Ignore this   sometimes Mac needs this to properly use printf
 BufferedSerial serial_port(USBTX, USBRX, 115200);
 FileHandle *mbed::mbed_override_console(int) { return &serial_port; }
 
@@ -228,11 +228,11 @@ int main() {
         while (1) {}
     }
 
-    // Configure accelerometer — change register value and sensitivity to match your chosen range
+    // Configure accelerometer   change register value and sensitivity to match your chosen range
     write_register(CTRL1_XL, 0x40);          // 104Hz, ±2g
     const float ACC_SENSITIVITY  = 0.061f;   // mg/LSB for ±2g
 
-    // Configure gyroscope — change register value and sensitivity to match your chosen range
+    // Configure gyroscope   change register value and sensitivity to match your chosen range
     write_register(CTRL2_G, 0x40);           // 104Hz, ±250 dps
     const float GYRO_SENSITIVITY = 8.75f;    // mdps/LSB for ±250 dps
 
@@ -264,7 +264,7 @@ int main() {
                ">gyro_x:%.2f\n>gyro_y:%.2f\n>gyro_z:%.2f\n",
                acc_x_g, acc_y_g, acc_z_g, gyro_x_dps, gyro_y_dps, gyro_z_dps);
 
-        // Polling delay — wakes up every 200ms regardless of sensor data rate
+        // Polling delay   wakes up every 200ms regardless of sensor data rate
         ThisThread::sleep_for(200ms);
     }
 }
@@ -289,33 +289,33 @@ Each variable name becomes its own live graph in the Teleplot window. Make sure 
 
 ### What is an Interrupt?
 
-An interrupt is a signal that tells the microcontroller to stop what it is currently doing and immediately run a specific function called an **Interrupt Service Routine (ISR)**. Once the ISR finishes, the microcontroller goes back to what it was doing before. This is much more efficient than polling because the CPU is not wasting time constantly checking — it only reacts when something actually happens.
+An interrupt is a signal that tells the microcontroller to stop what it is currently doing and immediately run a specific function called an **Interrupt Service Routine (ISR)**. Once the ISR finishes, the microcontroller goes back to what it was doing before. This is much more efficient than polling because the CPU is not wasting time constantly checking   it only reacts when something actually happens.
 
 ### Software Interrupts vs Hardware Interrupts
 
-**Software interrupts** are triggered by the program itself — for example a timer that fires every 1ms, or a watchdog timeout. They are generated internally by the microcontroller's own peripherals.
+**Software interrupts** are triggered by the program itself   for example a timer that fires every 1ms, or a watchdog timeout. They are generated internally by the microcontroller's own peripherals.
 
 **Hardware interrupts** are triggered by an external physical signal on a GPIO pin. For example, pressing a button or a sensor asserting a data-ready pin. The signal comes from outside the chip and causes the CPU to immediately jump to the ISR.
 
-In our case the LSM6DSL has a dedicated **INT1 pin** (connected to PD_11 on the STM32L475E-IOT01A). Every time the sensor has a new sample ready, it drives this pin HIGH for ~50µs. We configure the MCU to detect this rising edge and call our ISR instantly — no polling needed.
+In our case the LSM6DSL has a dedicated **INT1 pin** (connected to PD_11 on the STM32L475E-IOT01A). Every time the sensor has a new sample ready, it drives this pin HIGH for ~50µs. We configure the MCU to detect this rising edge and call our ISR instantly   no polling needed.
 
-### ISR Rules — What You Must and Must Not Do
+### ISR Rules   What You Must and Must Not Do
 
 ISRs run with very high priority and interrupt the normal program flow. Because of this there are strict rules:
 
-- **Keep ISRs as short as possible** — just set a flag and return. The less time spent in the ISR the better.
-- **Never call printf inside an ISR** — printf uses locks and buffers that are not interrupt-safe and will cause a crash or hang.
-- **Never do I2C or SPI reads inside an ISR** — these are blocking operations and will deadlock.
-- **Always declare shared variables as `volatile`** — this tells the compiler the variable can change at any time outside normal program flow, preventing incorrect optimizations.
+- **Keep ISRs as short as possible**   just set a flag and return. The less time spent in the ISR the better.
+- **Never call printf inside an ISR**   printf uses locks and buffers that are not interrupt-safe and will cause a crash or hang.
+- **Never do I2C or SPI reads inside an ISR**   these are blocking operations and will deadlock.
+- **Always declare shared variables as `volatile`**   this tells the compiler the variable can change at any time outside normal program flow, preventing incorrect optimizations.
 ```c
-// CORRECT — ISR just sets a flag
+// CORRECT   ISR just sets a flag
 volatile bool data_ready = false;
 
 void data_ready_isr() {
     data_ready = true;  // fast, safe
 }
 
-// WRONG — never do this inside an ISR
+// WRONG   never do this inside an ISR
 void bad_isr() {
     printf("data ready!\n");        // CRASH
     read_register(WHO_AM_I);        // DEADLOCK
@@ -326,11 +326,11 @@ void bad_isr() {
 
 Compared to polling, the interrupt example uses three additional registers:
 
-- **CTRL3_C (0x12)** — set to `0x44` to enable Block Data Update (BDU) and auto-increment. BDU prevents the sensor updating its output registers mid-read, so you never get a mismatched high/low byte pair.
-- **INT1_CTRL (0x0D)** — set to `0x03` to route both accelerometer and gyroscope data-ready signals to the INT1 pin.
-- **DRDY_PULSE_CFG (0x0B)** — set to `0x80` to make the INT1 pin fire a short 50µs pulse instead of holding HIGH until data is read. This works better with `InterruptIn` on Mbed.
+- **CTRL3_C (0x12)**   set to `0x44` to enable Block Data Update (BDU) and auto-increment. BDU prevents the sensor updating its output registers mid-read, so you never get a mismatched high/low byte pair.
+- **INT1_CTRL (0x0D)**   set to `0x03` to route both accelerometer and gyroscope data-ready signals to the INT1 pin.
+- **DRDY_PULSE_CFG (0x0B)**   set to `0x80` to make the INT1 pin fire a short 50µs pulse instead of holding HIGH until data is read. This works better with `InterruptIn` on Mbed.
 
-### Example — Interrupt Driven (Single Thread)
+### Example   Interrupt Driven (Single Thread)
 ```cpp
 #include "mbed.h"
 
@@ -347,13 +347,13 @@ I2C i2c(PB_11, PB_10);
 #define OUTX_L_G       0x22
 #define OUTX_L_XL      0x28
 
-// Hardware interrupt on INT1 pin — fires when sensor has new data
+// Hardware interrupt on INT1 pin   fires when sensor has new data
 InterruptIn int1(PD_11, PullDown);
 
-// Flag set by ISR — must be volatile so compiler does not optimize it away
+// Flag set by ISR   must be volatile so compiler does not optimize it away
 volatile bool data_ready = false;
 
-// ISR — keep it tiny, just set the flag
+// ISR   keep it tiny, just set the flag
 void data_ready_isr() {
     data_ready = true;
 }
@@ -449,9 +449,9 @@ int main() {
 }
 ```
 
-### Example — Interrupt Driven with Threads and EventQueue
+### Example   Interrupt Driven with Threads and EventQueue
 
-When the sensor fires at 104Hz, reading I2C and printing to serial both happen in the same main loop. If `printf` is slow it can delay the next read. The solution is to split the work into two threads — one dedicated to reading the sensor, one dedicated to printing — and pass data between them using an **EventQueue**.
+When the sensor fires at 104Hz, reading I2C and printing to serial both happen in the same main loop. If `printf` is slow it can delay the next read. The solution is to split the work into two threads   one dedicated to reading the sensor, one dedicated to printing   and pass data between them using an **EventQueue**.
 
 The EventQueue acts as a safe buffer: the acquisition thread posts a print job onto the queue, and the print thread processes it whenever it gets CPU time. This way the two operations never block each other.
 ```cpp
@@ -533,7 +533,7 @@ bool init_sensor() {
     return true;
 }
 
-// Called by the print thread via the event queue — safe to printf here
+// Called by the print thread via the event queue   safe to printf here
 void print_sample(ImuSample sample) {
     printf(">acc_x:%.3f\n>acc_y:%.3f\n>acc_z:%.3f\n"
            ">gyro_x:%.2f\n>gyro_y:%.2f\n>gyro_z:%.2f\n",
@@ -541,7 +541,7 @@ void print_sample(ImuSample sample) {
            sample.gyro[0], sample.gyro[1], sample.gyro[2]);
 }
 
-// Reads sensor and posts a print job to the queue — does NOT print directly
+// Reads sensor and posts a print job to the queue   does NOT print directly
 void read_sensor_data() {
     int16_t acc[3], gyro[3];
 
@@ -558,11 +558,11 @@ void read_sensor_data() {
     sample.gyro[1] = gyro[1] * 0.00875f;
     sample.gyro[2] = gyro[2] * 0.00875f;
 
-    // Post to queue — print_sample will be called by the print thread
+    // Post to queue   print_sample will be called by the print thread
     print_queue.call(print_sample, sample);
 }
 
-// Acquisition thread — waits for ISR flag and reads sensor
+// Acquisition thread   waits for ISR flag and reads sensor
 void acquisition_task() {
     while (true) {
         if (data_ready) {
@@ -573,7 +573,7 @@ void acquisition_task() {
     }
 }
 
-// Print thread — processes the event queue forever
+// Print thread   processes the event queue forever
 void print_task() {
     print_queue.dispatch_forever();
 }
@@ -593,7 +593,7 @@ int main() {
     Thread print_thread;
     print_thread.start(print_task);
 
-    // Main thread is idle — all work happens in the two threads above
+    // Main thread is idle   all work happens in the two threads above
     while (true) {
         ThisThread::sleep_for(1s);
     }
@@ -601,11 +601,11 @@ int main() {
 ```
 ## Polling vs Interrupts vs Event-Driven
 
-**Polling** — the MCU wakes up every 200ms and reads the sensor whether data is ready or not. Simple to write but wasteful — you miss ~95% of the sensor's samples since it produces data every 9.6ms but you only check every 200ms.
+**Polling**   the MCU wakes up every 200ms and reads the sensor whether data is ready or not. Simple to write but wasteful   you miss ~95% of the sensor's samples since it produces data every 9.6ms but you only check every 200ms.
 
-**Interrupt (single thread)** — the sensor tells the MCU exactly when data is ready via the INT1 pin. The MCU does nothing until that signal fires, then reads and prints immediately. Much more efficient and you never miss a sample. The downside is that reading I2C and printing both happen in the same loop, so if printf is slow it can delay the next read.
+**Interrupt (single thread)**   the sensor tells the MCU exactly when data is ready via the INT1 pin. The MCU does nothing until that signal fires, then reads and prints immediately. Much more efficient and you never miss a sample. The downside is that reading I2C and printing both happen in the same loop, so if printf is slow it can delay the next read.
 
-**Interrupt + EventQueue + Threads** — same hardware interrupt as above, but reading and printing are split into two separate threads. The acquisition thread reads the sensor and posts the data into a queue. The print thread picks it up and prints whenever it has time. Neither one blocks the other.
+**Interrupt + EventQueue + Threads**   same hardware interrupt as above, but reading and printing are split into two separate threads. The acquisition thread reads the sensor and posts the data into a queue. The print thread picks it up and prints whenever it has time. Neither one blocks the other.
 
 
 Use polling for simple demos. Use interrupts when you need reliable data capture. Use threads when reading and printing need to run independently without blocking each other.
@@ -614,11 +614,11 @@ Use polling for simple demos. Use interrupts when you need reliable data capture
 
 When your board is stationary, you might see the accelerometer and gyroscope values jumping around a bit. This is completely normal. Here is why:
 
-1. **Sensor noise** — MEMS sensors always have some random noise in their output.
-2. **Temperature** — Even small temperature changes in the room can cause readings to drift.
-3. **Digital conversion** — Converting analog signals to digital loses some precision (quantization error).
-4. **Gravity** — Your accelerometer is always sensing Earth's gravity (~1g) even when still.
-5. **Tiny vibrations** — People walking, AC units running, or a slightly unstable surface all get picked up.
+1. **Sensor noise**   MEMS sensors always have some random noise in their output.
+2. **Temperature**   Even small temperature changes in the room can cause readings to drift.
+3. **Digital conversion**   Converting analog signals to digital loses some precision (quantization error).
+4. **Gravity**   Your accelerometer is always sensing Earth's gravity (~1g) even when still.
+5. **Tiny vibrations**   People walking, AC units running, or a slightly unstable surface all get picked up.
 
 To make readings more stable you could try:
 - Adding a low-pass filter to smooth things out
